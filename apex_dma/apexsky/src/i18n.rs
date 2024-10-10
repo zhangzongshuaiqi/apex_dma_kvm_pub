@@ -22,6 +22,7 @@ pub enum MessageId {
     TitleExtraSkill,
     TitleOtherSetting,
     MenuItemFiringRange,
+    MenuItemTdmToggle,
     MenuItemKeyboard,
     MenuItemGamepad,
     MenuItemItemGlow,
@@ -309,7 +310,7 @@ macro_rules! i18n_msg_format {
         value
     }};
 }
-/*
+
 pub fn get<'a, 'b>(
     accept_language: &'a str,
     message_ids: Vec<&'static str>,
@@ -328,7 +329,7 @@ pub fn get<'a, 'b>(
     }
     Ok(result)
 }
-*/
+
 #[test]
 fn get_all_message_ids() {
     use strum::IntoEnumIterator;

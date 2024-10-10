@@ -132,5 +132,3 @@ bool check_exist();
 std::set<size_t> load_valid_dtbs();
 
 void append_valid_dtb(size_t dtb);
-
-bool IsInValid(uint64_t address);

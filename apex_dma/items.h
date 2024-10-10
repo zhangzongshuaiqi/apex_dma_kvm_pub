@@ -1,4 +1,3 @@
-#pragma once
 #include "FNVHash.h"
 #include <unordered_map>
 #include <fstream>
