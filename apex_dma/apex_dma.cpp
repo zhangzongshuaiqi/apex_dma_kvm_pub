@@ -52,14 +52,15 @@ bool item_t = false;
 
 // for esp
 extern Vector aim_target;
-//extern float bulletspeed;
-//extern float bulletgrav;
+extern float bulletspeed;
+extern float bulletgrav;
 bool next2 = false;
 bool valid = false;
 Vector esp_local_pos;
 float lastvis_esp[ToRead];
 std::vector<TreasureClue> treasure_clues;
 std::vector<player> players(ToRead);
+
 
 std::map<uint64_t, uint64_t> centity_to_index; // Map centity to entity index
 std::unordered_map<uint64_t, float> LastVisibleTime;
@@ -122,7 +123,7 @@ bool IsInTriggerZone(WeaponXEntity &weapon, Vector localCameraPos, Entity &targe
         break;
     case idweapon_p2020:
     case idweapon_mozambique:
-        delay = 220;
+        delay = 200;
         boneIndex = 2;
         break;
     case idweapon_mastiff:
@@ -690,7 +691,7 @@ void ClientActions()
                 }
             }
             bool triggerbot_clickgun;
-            uint32_t local_weapon_id = globals.GetOrDefault<uint32_t>("WeaponID", idmelee);
+            uint32_t local_weapon_id = globals.GetOrDefault<uint32_t>("WeaponID",idmelee);
             switch (local_weapon_id)
             {
             case idweapon_eva8:
@@ -770,7 +771,7 @@ void ClientActions()
 }
 
 // 位于ProcessPlayer
-void SetPlayerGlow(Entity &LPlayer, Entity &Target, int index, int frame_number, bool vis)
+void SetPlayerGlow(Entity &LPlayer, Entity &Target, int index, int frame_number,bool vis)
 {
     const auto g_settings = global_settings();
     int setting_index = 0;
@@ -779,16 +780,16 @@ void SetPlayerGlow(Entity &LPlayer, Entity &Target, int index, int frame_number,
     if (!(g_settings.firing_range) && (Target.isKnocked() || !Target.isAlive()))
     { // 不在训练场并且倒地或者没活着
         setting_index = 70;
-        highlight_parameter = {g_settings.glow_r_knocked,
-                               g_settings.glow_g_knocked,
-                               g_settings.glow_b_knocked};
+        highlight_parameter = { g_settings.glow_r_knocked,
+                                g_settings.glow_g_knocked,
+                                g_settings.glow_b_knocked};
     }
     else if (vis)
     {
         setting_index = 69;
-        highlight_parameter = {g_settings.glow_r_viz,
-                               g_settings.glow_g_viz,
-                               g_settings.glow_b_viz};
+        highlight_parameter = { g_settings.glow_r_viz, 
+                                g_settings.glow_g_viz,
+                                g_settings.glow_b_viz};
     }
     else
     {
@@ -830,9 +831,9 @@ void SetPlayerGlow(Entity &LPlayer, Entity &Target, int index, int frame_number,
         else
         {
             setting_index = 68;
-            highlight_parameter = {g_settings.glow_r_not,
-                                   g_settings.glow_g_not,
-                                   g_settings.glow_b_not};
+            highlight_parameter = { g_settings.glow_r_not,
+                                    g_settings.glow_g_not,
+                                    g_settings.glow_b_not};
         }
     }
     // love player glow
@@ -880,10 +881,10 @@ void ProcessPlayer(Entity &LPlayer, Entity &target, uint64_t target_ptr, int fra
         }
         return;
     }
-    bool vis = target.isVisable(LastVisibleTime, LastTimeAimedAt);
+    bool vis = target.isVisable(LastVisibleTime,LastTimeAimedAt);
     if (!LPlayer.isAlive())
     {
-        SetPlayerGlow(LPlayer, target, target_ptr, frame_number, vis);
+        SetPlayerGlow(LPlayer, target, target_ptr, frame_number,vis);
         LastVisibleTime[target_ptr] = target.lastVisTime();
         LastTimeAimedAt[target_ptr] = target.lastCrossHairTime();
         return;
@@ -913,13 +914,12 @@ void ProcessPlayer(Entity &LPlayer, Entity &target, uint64_t target_ptr, int fra
     // aim distance check
     int local_held_id = std::get<int>(globals.Get("HeldID"));
     if ((local_held_id == -251 && dist > g_settings.skynade_dist) ||
-        dist > g_settings.aim_dist)
-    {
-        SetPlayerGlow(LPlayer, target, target_ptr, frame_number, vis);
-        LastVisibleTime[target_ptr] = target.lastVisTime();
-        LastTimeAimedAt[target_ptr] = target.lastCrossHairTime();
-        return; // need setglow though it's out of aimdist
-    }
+        dist > g_settings.aim_dist){
+            SetPlayerGlow(LPlayer, target, target_ptr, frame_number,vis);
+            LastVisibleTime[target_ptr] = target.lastVisTime();
+            LastTimeAimedAt[target_ptr] = target.lastCrossHairTime();
+            return; // need setglow though it's out of aimdist
+        }
     // Targeting
     const float vis_weights = 12.5f;
     float fov = CalculateFov(LPlayer, target);
@@ -959,7 +959,7 @@ void ProcessPlayer(Entity &LPlayer, Entity &target, uint64_t target_ptr, int fra
             }
         }
     }
-    SetPlayerGlow(LPlayer, target, target_ptr, frame_number, vis);
+    SetPlayerGlow(LPlayer, target, target_ptr, frame_number,vis);
     LastVisibleTime[target_ptr] = target.lastVisTime();
     LastTimeAimedAt[target_ptr] = target.lastCrossHairTime();
 }
@@ -1373,28 +1373,20 @@ static void AimbotLoop()
             // printf("%d\n", weaponID);
             if (g_settings.aim_no_recoil)
             {
-                static QAngle preRecoilAngles = QAngle(0, 0, 0);
                 int in_attack = std::get<int>(globals.Get("AttackState"));
                 if (in_attack > 0)
                 {
-                    QAngle punchAngles = LPlayer.GetRecoil();
-                    if (punchAngles.x < 0)
-                    {
-                        QAngle deltaAngle(0, 0, 0);
-                        QAngle viewAngles = LPlayer.GetViewAngles();
-                        deltaAngle.x = (preRecoilAngles.x - punchAngles.x) * (g_settings.recoil_pitch / 100.f);
-                        deltaAngle.y = (preRecoilAngles.y - punchAngles.y) * (g_settings.recoil_yaw / 100.f);
-                        viewAngles += deltaAngle;
+                    QAngle viewAngles = LPlayer.GetViewAngles();
+                    QAngle punchAngles = LPlayer.GetSwayAngles();
+                    viewAngles.x -= punchAngles.x * (g_settings.recoil_pitch / 100.f);
+                    viewAngles.y -= punchAngles.y * (g_settings.recoil_yaw / 100.f);
+                    Math::NormalizeAngles(viewAngles);
+                    if (viewAngles.x != viewAngles.x || viewAngles.y != viewAngles.y)
                         LPlayer.SetViewAngles(viewAngles);
-                        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                    }
-                    preRecoilAngles = punchAngles;
-                }else{
-                    preRecoilAngles = QAngle(0, 0, 0);
                 }
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
             }
-            if (!QuickAim)
-                continue;
+            if (!QuickAim) continue;
             if (g_settings.aim > 0)
             { // 0为不自喵，1为不检查可见性，2为检查目标可见性
                 uint64_t target_ptr = aimbot.GetAimentity();
@@ -1445,7 +1437,6 @@ static void AimbotLoop()
                         float screenH = g_settings.screen_height;
                         if (IsInTriggerZone(currentWeapon, loaclCamPos, target, isInhair, screenW, screenH))
                         {
-                            apex_mem.Write<int>(g_Base + OFFSET_IN_ATTACK + 0x8, 4);
                             apex_mem.Write<int>(g_Base + OFFSET_IN_ATTACK + 0x8, 5);
                             std::this_thread::sleep_for(std::chrono::milliseconds(20));
                             apex_mem.Write<int>(g_Base + OFFSET_IN_ATTACK + 0x8, 4);

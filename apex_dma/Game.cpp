@@ -1,5 +1,6 @@
-#include "Game.h"
+#include "apex_sky.h"
 #include "prediction.h"
+#include "vector.h"
 #include <array>
 #include <cassert>
 #include <chrono>
@@ -346,30 +347,30 @@ auto fun_calc_angles = [](Vector LocalCameraPosition, Vector TargetBonePosition,
     QAngle CalculatedAngles = QAngle(0, 0, 0);
     if (BulletSpeed > 1.f)
     {
-        bulletspeed = get_predict(weapid);
-        //printf("speed:%f\n",bulletspeed);
         if (weapid == 2)
         {
-            bulletspeed = 10.08; // reserve
+            bulletspeed = 10.08;
             bulletgrav = 10.05;
         }
         else
         {
+            bulletspeed = 0.08;
             bulletgrav = 0.05;
         }
         PredictCtx Ctx;
         Ctx.StartPos = LocalCameraPosition;
-        Ctx.BulletSpeed = BulletSpeed * (1 - bulletspeed);
-        Ctx.BulletGravity = BulletGrav * (1 + bulletgrav);
-        
+        Ctx.TargetPos = TargetBonePosition;
+        Ctx.BulletSpeed = BulletSpeed - (BulletSpeed * bulletspeed);
+        Ctx.BulletGravity = BulletGrav + (BulletGrav * bulletgrav);
+
         // Add the target's velocity to the prediction context, with an offset
         // in the y direction
         float distanceToTarget = (TargetBonePosition - LocalCameraPosition).Length();
         float timeToTarget = distanceToTarget / BulletSpeed;
         Vector targetPosAhead = TargetBonePosition + (targetVel * timeToTarget);
-        Ctx.TargetVel = Vector(targetVel.x, targetVel.y /*+ (targetVel.Length() * deltaTime)*/, targetVel.z);
+        Ctx.TargetVel = Vector(targetVel.x, targetVel.y + (targetVel.Length() * deltaTime), targetVel.z);
         Ctx.TargetPos = targetPosAhead;
-        
+
         aim_target = Ctx.TargetPos;
 
         if (BulletPredict(Ctx))
@@ -481,8 +482,6 @@ QAngle CalculateBestBoneAim(Entity &from, Entity &target, WeaponXEntity &weapon,
         {
             return QAngle(0, 0, 0);
         }
-        CalculatedAnglesMin -= SwayAngles - ViewAngles;
-        CalculatedAnglesMax -= SwayAngles - ViewAngles;
         Math::NormalizeAngles(CalculatedAnglesMin);
         Math::NormalizeAngles(CalculatedAnglesMax);
         QAngle DeltaMin = CalculatedAnglesMin - ViewAngles;
@@ -609,13 +608,15 @@ void DoFlick(Entity &from, Entity &target, float *m_vMatrix)
     float bulletSpeed = weapon.get_projectile_speed();
     float bulletGrav = weapon.get_projectile_gravity();
     Vector LocalCamera = from.GetCamPos();
+    // QAngle ViewAngles = from.GetViewAngles();
+    // QAngle SwayAngles = from.GetSwayAngles();
     Vector targetVel = target.getAbsVelocity();
     float deltaTime = 1.0 / g_settings.game_fps;
 
     PredictCtx Ctx;
     Ctx.StartPos = LocalCamera;
     Ctx.TargetPos = bestAimBonePos;
-    Ctx.BulletSpeed = bulletSpeed * 0.98;
+    Ctx.BulletSpeed = bulletSpeed * 0.92;
     Ctx.BulletGravity = bulletGrav * 1.05;
     float distanceToTarget = (bestAimBonePos - LocalCamera).Length();
     float timeToTarget = distanceToTarget / bulletSpeed;
@@ -713,49 +714,3 @@ const char *WeaponXEntity::get_name_str() { return name_str; }
 int WeaponXEntity::get_mod_bitfield() { return mod_bitfield; }
 
 uint32_t WeaponXEntity::get_weap_id() { return weap_id; }
-
-std::unordered_map<weapon_id, float predict::*> weapon_predict_map = {
-    {idweapon_kraber, &predict::weapon_kraber},
-    {idweapon_bow, &predict::weapon_bow},
-    {idweapon_mastiff, &predict::weapon_mastiff},
-    {idweapon_eva8, &predict::weapon_eva8},
-    {idweapon_peacekeeper, &predict::weapon_peacekeeper},
-    {idweapon_mozambique, &predict::weapon_mozambique},
-    {idweapon_lstar, &predict::weapon_lstar},
-    {idweapon_nemesis, &predict::weapon_nemesis},
-    {idweapon_havoc, &predict::weapon_havoc},
-    {idweapon_devotion, &predict::weapon_devotion},
-    {idweapon_triple_take, &predict::weapon_triple_take},
-    {idweapon_volt, &predict::weapon_volt},
-    {idweapon_flatline, &predict::weapon_flatline},
-    {idweapon_hemlock, &predict::weapon_hemlock},
-    {idweapon_3030_repeater, &predict::weapon_3030_repeater},
-    {idweapon_rampage, &predict::weapon_rampage},
-    {idweapon_car_smg, &predict::weapon_car_smg},
-    {idweapon_prowler, &predict::weapon_prowler},
-    {idweapon_p2020, &predict::weapon_p2020},
-    {idweapon_re45, &predict::weapon_re45},
-    {idweapon_g7_scout, &predict::weapon_g7_scout},
-    {idweapon_alternator, &predict::weapon_alternator},
-    {idweapon_r99, &predict::weapon_r99},
-    {idweapon_spitfire, &predict::weapon_spitfire},
-    {idweapon_r301, &predict::weapon_r301},
-    {idweapon_wingman, &predict::weapon_wingman},
-    {idweapon_longbow, &predict::weapon_longbow},
-    {idweapon_charge_rifle, &predict::weapon_charge_rifle},
-    {idweapon_sentinel, &predict::weapon_sentinel},
-};
-
-float get_predict(int weaponid)
-{
-    weapon_id weapon_enum = static_cast<weapon_id>(weaponid);
-    const auto g_settings = global_settings(); 
-    float predict_value = 0;
-    auto it = weapon_predict_map.find(weapon_enum);
-    if (it != weapon_predict_map.end()) {
-        predict_value = g_settings.weapon_predict.*(it->second);
-    } else {
-        predict_value;
-    }
-    return predict_value;
-}

@@ -4,7 +4,6 @@
 #include "offsets.h"
 #include "vector.h"
 #include "FNVHash.h"
-#include "apex_sky.h"
 #include <cstdint>
 #include <shared_mutex>
 #include <variant>
@@ -193,7 +192,6 @@ typedef struct
   float distance;
 } TreasureClue;
 
-float get_predict(int weaponid);
 
 struct GlobalVar {
     using VarType = std::variant<int8_t, uint32_t, uint64_t, int, float, bool, Matrix>;
