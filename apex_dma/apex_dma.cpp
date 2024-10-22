@@ -301,7 +301,7 @@ void UpdateGlobalVar()
             {
                 Map = 0;
             }
-            else if (strcmp(level_name, "mp_rr_canyonlands_staging_mu1") == 0)
+            else if (strstr(level_name, "mp_rr_canyonlands_staging_mu")) // mp_rr_canyonlands_staging_mu1 in current season
             {
                 Map = 1;
             }
@@ -309,23 +309,23 @@ void UpdateGlobalVar()
             {
                 Map = 2;
             }
-            else if (strcmp(level_name, "mp_rr_desertlands_hu") == 0)
+            else if (strstr(level_name, "mp_rr_desertlands_hu"))
             {
                 Map = 3;
             }
-            else if (strcmp(level_name, "mp_rr_olympus_mu2") == 0)
+            else if (strstr(level_name, "mp_rr_olympus_mu")) // mp_rr_olympus_mu2 in current season
             {
                 Map = 4;
             }
-            else if (strcmp(level_name, "mp_rr_district") == 0)
+            else if (strstr(level_name, "mp_rr_district")) // mp_rr_district_halloween
             {
                 Map = 5;
             }
-            else if (strcmp(level_name, "mp_rr_divided_moon_mu1") == 0)
+            else if (strstr(level_name, "mp_rr_divided_moon_mu")) // mp_rr_divided_moon_mu1 in current season
             {
                 Map = 6;
             }
-            else if (strcmp(level_name, "mp_rr_canyonlands_hu") == 0)
+            else if (strstr(level_name, "mp_rr_canyonlands_hu"))
             {
                 Map = 7;
             }
@@ -1371,7 +1371,8 @@ static void AimbotLoop()
             uint32_t weaponID = currentWeapon.get_weap_id();
             globals.Set("WeaponID", weaponID);
             // printf("%d\n", weaponID);
-            if (g_settings.aim_no_recoil)
+            uint64_t target_ptr = aimbot.GetAimentity();
+            if (g_settings.aim_no_recoil && !target_ptr)
             {
                 static QAngle preRecoilAngles = QAngle(0, 0, 0);
                 int in_attack = std::get<int>(globals.Get("AttackState"));
@@ -1397,7 +1398,6 @@ static void AimbotLoop()
                 continue;
             if (g_settings.aim > 0)
             { // 0为不自喵，1为不检查可见性，2为检查目标可见性
-                uint64_t target_ptr = aimbot.GetAimentity();
                 if (target_ptr == 0)
                 { // 如果无目标取消锁定
                     cancel_targeting();
