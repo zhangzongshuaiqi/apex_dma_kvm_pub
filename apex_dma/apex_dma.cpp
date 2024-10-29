@@ -2242,8 +2242,8 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    const char *ap_proc = "r5apex.exe";
-    const char *ap_proc_dx12 = "r5apex_dx12.exe";
+    const char *ap_proc = "r5apex_dx12.exe";
+    const char *ap_proc_dx12 = "r5apex.exe";
 
     std::thread global_thr;
     std::thread aimbot_thr;
