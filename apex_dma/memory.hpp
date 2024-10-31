@@ -1,3 +1,6 @@
+#ifndef MEMORY_HPP
+#define MEMORY_HPP
+
 #include "memflow.hpp"
 #include <cstdint>
 #include <cstring>
@@ -19,118 +22,101 @@ typedef unsigned long DWORD;
 typedef unsigned short WORD;
 typedef WORD *PWORD;
 
-static ConnectorInstance<> *conn = 0;
+static ConnectorInstance<> *conn = nullptr;
 
-inline bool isMatch(const PBYTE addr, const PBYTE pat, const PBYTE msk)
-{
-  size_t n = 0;
-  while (addr[n] == pat[n] || msk[n] == (BYTE)'?')
-  {
-    if (!msk[++n])
-    {
-      return true;
+inline bool isMatch(const PBYTE addr, const PBYTE pat, const PBYTE msk) {
+    size_t n = 0;
+    while (addr[n] == pat[n] || msk[n] == (BYTE)'?') {
+        if (!msk[++n]) {
+            return true;
+        }
     }
-  }
-  return false;
+    return false;
 }
 
 size_t findPattern(const PBYTE rangeStart, size_t len, const char *pattern);
 
-typedef struct Process
-{
-  ProcessInstance<> hProcess;
-  uint64_t baseaddr = 0;
-} Process;
-
-enum class process_status : BYTE
-{
-  NOT_FOUND,
-  FOUND_NO_ACCESS,
-  FOUND_READY
+struct Process {
+    ProcessInstance<> hProcess;
+    uint64_t baseaddr = 0;
 };
 
-class Memory
-{
+enum class process_status : BYTE {
+    NOT_FOUND,
+    FOUND_NO_ACCESS,
+    FOUND_READY
+};
+
+class Memory {
 private:
-  Inventory *inventory;
-  OsInstance<> os;
-  Process proc;
-  process_status status = process_status::NOT_FOUND;
-  std::mutex m;
+    Inventory *inventory;
+    OsInstance<> os;
+    Process proc;
+    process_status status = process_status::NOT_FOUND;
+    std::mutex m;
 
 public:
-  Memory();
-  ~Memory();
+    Memory();
+    ~Memory();
 
-  uint64_t get_proc_baseaddr();
+    uint64_t get_proc_baseaddr();
+    process_status get_proc_status();
+    void check_proc();
+    int open_os();
+    int open_proc(const char *name);
+    void close_proc();
 
-  process_status get_proc_status();
+    template <typename T>
+    bool Read(uint64_t address, T &out);
 
-  void check_proc();
+    template <typename T>
+    bool ReadArray(uint64_t address, T out[], size_t len);
 
-  int open_os();
+    template <typename T>
+    bool Write(uint64_t address, const T &value);
 
-  int open_proc(const char *name);
+    template <typename T>
+    bool WriteArray(uint64_t address, const T value[], size_t len);
 
-  void close_proc();
-
-  template <typename T>
-  bool Read(uint64_t address, T &out);
-
-  template <typename T>
-  bool ReadArray(uint64_t address, T out[], size_t len);
-
-  template <typename T>
-  bool Write(uint64_t address, const T &value);
-
-  template <typename T>
-  bool WriteArray(uint64_t address, const T value[], size_t len);
-
-  uint64_t ScanPointer(uint64_t ptr_address, const uint32_t offsets[],
-                       int level);
+    uint64_t ScanPointer(uint64_t ptr_address, const uint32_t offsets[]);
 };
 
 template <typename T>
-inline bool Memory::Read(uint64_t address, T &out)
-{
-  std::lock_guard<std::mutex> l(m);
-  return proc.baseaddr &&
-         proc.hProcess.read_raw_into(
-             address, CSliceMut<uint8_t>((char *)&out, sizeof(T))) == 0;
+bool Memory::Read(uint64_t address, T &out) {
+    std::lock_guard<std::mutex> l(m);
+    return proc.baseaddr &&
+           proc.hProcess.read_raw_into(
+               address, CSliceMut<uint8_t>((char *)&out, sizeof(T))) == 0;
 }
 
 template <typename T>
-inline bool Memory::ReadArray(uint64_t address, T out[], size_t len)
-{
-  std::lock_guard<std::mutex> l(m);
-  return proc.baseaddr &&
-         proc.hProcess.read_raw_into(
-             address, CSliceMut<uint8_t>((char *)out, sizeof(T) * len)) == 0;
+bool Memory::ReadArray(uint64_t address, T out[], size_t len) {
+    std::lock_guard<std::mutex> l(m);
+    return proc.baseaddr &&
+           proc.hProcess.read_raw_into(
+               address, CSliceMut<uint8_t>((char *)out, sizeof(T) * len)) == 0;
 }
 
 template <typename T>
-inline bool Memory::Write(uint64_t address, const T &value)
-{
-  std::lock_guard<std::mutex> l(m);
-  return proc.baseaddr &&
-         proc.hProcess.write_raw(
-             address, CSliceRef<uint8_t>((const char *)&value, sizeof(T))) == 0;
+bool Memory::Write(uint64_t address, const T &value) {
+    std::lock_guard<std::mutex> l(m);
+    return proc.baseaddr &&
+           proc.hProcess.write_raw(
+               address, CSliceRef<uint8_t>((const char *)&value, sizeof(T))) == 0;
 }
 
 template <typename T>
-inline bool Memory::WriteArray(uint64_t address, const T value[], size_t len)
-{
-  std::lock_guard<std::mutex> l(m);
-  return proc.baseaddr &&
-         proc.hProcess.write_raw(
-             address,
-             CSliceRef<uint8_t>(((const char *)value, sizeof(T) * len))) == 0;
+bool Memory::WriteArray(uint64_t address, const T value[], size_t len) {
+    std::lock_guard<std::mutex> l(m);
+    return proc.baseaddr &&
+           proc.hProcess.write_raw(
+               address,
+               CSliceRef<uint8_t>((const char *)value, sizeof(T) * len)) == 0;
 }
 
 bool check_exist();
-
 std::set<size_t> load_valid_dtbs();
-
 void append_valid_dtb(size_t dtb);
-
 bool IsInValid(uint64_t address);
+
+#endif // MEMORY_HPP
